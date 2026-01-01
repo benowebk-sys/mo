@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Happy Birthday Gift</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Pacifico&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Fredoka', sans-serif;
+        }
+
+        /* Heartbeat Animation */
+        @keyframes heartbeat {
+            0% { transform: scale(1); }
+            15% { transform: scale(1.15); }
+            30% { transform: scale(1); }
+            45% { transform: scale(1.15); }
+            60% { transform: scale(1); }
+        }
+
+        .pulse-text {
+            animation: heartbeat 2s infinite;
+        }
+
+        /* Matrix Canvas */
+        #matrix-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            display: none; 
+        }
+
+        /* Content Layer */
+        #content-layer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none; 
+        }
+
+        .hidden-el {
+            display: none !important;
+        }
+
+        /* QR Code Container Design */
+        .qr-container {
+            position: relative;
+            padding: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 0 30px rgba(255, 105, 180, 0.5);
+            cursor: pointer;
+            z-index: 50;
+            transition: transform 0.2s;
+            border: 4px solid #ffb7b2;
+        }
+        
+        .qr-container:active {
+            transform: scale(0.98); 
+        }
+
+        .qr-img {
+            width: 250px;
+            height: 250px;
+            display: block;
+            image-rendering: pixelated; 
+        }
+
+        .glow-text {
+            text-shadow: 0 0 10px #ff69b4, 0 0 20px #ff69b4;
+        }
+
+        /* Typewriter Effect */
+        .typewriter-text {
+            border-right: .15em solid orange;
+            animation: blink-caret .75s step-end infinite;
+        }
+        
+        @keyframes blink-caret {
+            from, to { border-color: transparent }
+            50% { border-color: #ff69b4; }
+        }
+
+        /* Photo Frame Design */
+        .final-photo-frame {
+            border: 4px solid #ffb7b2;
+            box-shadow: 0 0 30px rgba(255, 105, 180, 0.8);
+            transition: all 1s ease;
+            background-color: #000;
+        }
+
+        /* Layout for Image and Text */
+        .message-row {
+            display: flex;
+            flex-direction: row; 
+            align-items: center;
+            justify-content: center;
+            gap: 40px; 
+            flex-wrap: wrap; 
+            width: 100%;
+            max-width: 1000px;
+        }
+    </style>
+</head>
+<body class="text-white h-screen w-screen flex flex-col items-center justify-center">
+
+    <audio id="bg-music">
+        <source src="music.mp3" type="audio/mpeg">
+        <source src="https://cdn.pixabay.com/download/audio/2022/10/05/audio_68629e469b.mp3?filename=romantic-piano-123498.mp3" type="audio/mp3">
+    </audio>
+
+    <!-- Start Screen -->
+    <div id="start-screen" class="flex flex-col items-center justify-center z-50">
+        <div class="mb-8 text-pink-300 text-xl font-light tracking-widest pulse-text">
+            <i class="fas fa-heart"></i> Scan Code Now
+        </div>
+        
+        <!-- QR Code Container -->
+        <div class="qr-container" onclick="startExperience()">
+            <!-- QR Image injected via JS -->
+            <img id="qr-code-img" src="" alt="QR Code" class="qr-img">
+        </div>
+        
+        <div class="mt-8 text-gray-400 text-sm">
+            <i class="fas fa-camera"></i> Scan to Start
+        </div>
+    </div>
+
+    <!-- Matrix Background -->
+    <canvas id="matrix-canvas"></canvas>
+
+    <!-- Final Content Layer -->
+    <div id="content-layer" class="hidden-el">
+        <div id="countdown" class="text-8xl font-bold text-pink-500 hidden-el glow-text">3</div>
+        <div id="main-display" class="hidden-el w-full flex flex-col items-center p-4">
+            <div class="message-row">
+                
+                <!-- Image Container -->
+                <div id="final-image-container" class="opacity-0 transition-opacity duration-1000 order-2 md:order-1">
+                    <img id="user-photo" 
+                         src="photo_2026-01-01_18-14-45.jpg" 
+                         onerror="this.onerror=null; this.src='https://media.tenor.com/N_w_I2n-8G0AAAAi/mochi-peach.gif';"
+                         alt="Birthday Person" 
+                         class="final-photo-frame rounded-xl w-64 h-64 md:w-80 md:h-80 object-cover">
+                </div>
+
+                <!-- Text Container -->
+                <div id="message-text-container" class="text-center md:text-left order-1 md:order-2">
+                    <h1 id="typed-text" class="text-5xl md:text-7xl font-bold text-white glow-text leading-tight" style="font-family: 'Pacifico', cursive;">
+                    </h1>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* --- CONFIGURATION --- */
+        // Replace this link with your actual GitHub Pages link
+        const yourLink = "https://benowebk-sys.github.io/bilal-mo-/"; 
+
+        // Generate QR Code
+        const qrImg = document.getElementById('qr-code-img');
+        qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(yourLink)}&color=000000&bgcolor=ffffff&margin=15`;
+
+        const music = document.getElementById('bg-music');
+        const startScreen = document.getElementById('start-screen');
+        const canvas = document.getElementById('matrix-canvas');
+        const contentLayer = document.getElementById('content-layer');
+        const countdownEl = document.getElementById('countdown');
+        const mainDisplay = document.getElementById('main-display');
+        const typedTextEl = document.getElementById('typed-text');
+        const finalImgContainer = document.getElementById('final-image-container');
+
+        function startExperience() {
+            music.volume = 0.7;
+            const playPromise = music.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(error => { console.log("Audio blocked by browser"); });
+            }
+
+            // Optional: Open link on click if needed
+            // window.open(yourLink, '_blank');
+
+            startScreen.style.opacity = '0';
+            setTimeout(() => {
+                startScreen.style.display = 'none';
+                canvas.style.display = 'block';
+                contentLayer.classList.remove('hidden-el');
+                startMatrix(); 
+                startSequence(); 
+            }, 500);
+        }
+
+        function startSequence() {
+            setTimeout(() => showCountdown(3), 500);
+        }
+
+        function showCountdown(num) {
+            countdownEl.classList.remove('hidden-el');
+            countdownEl.innerText = num;
+            countdownEl.style.animation = 'none';
+            countdownEl.offsetHeight; 
+            countdownEl.style.animation = 'fadeInUp 0.5s ease-out';
+
+            if (num > 1) {
+                setTimeout(() => showCountdown(num - 1), 1000);
+            } else {
+                setTimeout(() => {
+                    countdownEl.classList.add('hidden-el');
+                    startMainContent();
+                }, 1000);
+            }
+        }
+
+        function startMainContent() {
+            mainDisplay.classList.remove('hidden-el');
+            finalImgContainer.classList.remove('opacity-0');
+            setTimeout(showTypewriterMessage, 500);
+        }
+
+        function showTypewriterMessage() {
+            const fullText = "Happy Birthday\nTo You!";
+            let i = 0;
+            
+            const typeInterval = setInterval(() => {
+                if (fullText.charAt(i) === '\n') {
+                    typedTextEl.innerHTML += '<br/>';
+                } else {
+                    typedTextEl.innerHTML += fullText.charAt(i);
+                }
+                i++;
+                if (i >= fullText.length) {
+                    clearInterval(typeInterval);
+                }
+            }, 150);
+            
+            ctx.fillStyle = 'rgba(0,0,0,0.6)';
+            ctx.fillRect(0,0,width,height);
+        }
+
+        /* --- Matrix Rain Effect --- */
+        const ctx = canvas.getContext('2d');
+        let width = canvas.width = window.innerWidth;
+        let height = canvas.height = window.innerHeight;
+        
+        window.addEventListener('resize', () => {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        });
+
+        const str = "HAPPYBIRTHDAYLOVE♡";
+        const matrix = str.split("");
+        const fontSize = 16;
+        const columns = width / fontSize;
+        const drops = [];
+
+        for(let x = 0; x < columns; x++) { drops[x] = 1; }
+
+        function drawMatrix() {
+            ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
+            ctx.fillRect(0, 0, width, height);
+            ctx.fillStyle = "#ffb7b2"; 
+            ctx.font = fontSize + "px monospace";
+
+            for(let i = 0; i < drops.length; i++) {
+                const text = matrix[Math.floor(Math.random() * matrix.length)];
+                if(Math.random() > 0.9) ctx.fillStyle = "#fff";
+                else ctx.fillStyle = "#ffb7b2";
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+                if(drops[i] * fontSize > height && Math.random() > 0.975) drops[i] = 0;
+                drops[i]++;
+            }
+            requestAnimationFrame(drawMatrix);
+        }
+
+        function startMatrix() { drawMatrix(); }
+    </script>
+</body>
+</html>
